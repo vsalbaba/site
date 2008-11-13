@@ -105,6 +105,7 @@ int main (int argc, char *argv[])
     cout << "adresa prijemce : " <<  ether_ntoa((ether_addr*)header->ether_dhost) << endl << endl;
     /*
     * tusite ja ziskat protokol sitove vrstvy? napiste to do komentare!
+    * http://github.com/DarkTatka/site/tree/master/sokety-site/newmain.cpp
     */
   }
     
