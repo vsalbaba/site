@@ -1,14 +1,7 @@
-/* 
- * File:   newmain.cpp
- * Author: vojta
- *
- * Created on 13. listopad 2008, 12:39
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-
+ 
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -20,7 +13,7 @@
 #include <linux/ip.h>
 #include <netinet/ether.h>
 #include <iostream>
-
+ 
 using namespace std;
 /*
  * Napište program pro příjem všech linkových rámců vypisující následující informace: 
@@ -30,17 +23,17 @@ using namespace std;
  * adresy příjemce (v dvojtečkovém tvaru)
  * protokol síťové vrstvy 
  */
-
+ 
 #define BUFFLEN 1500
-
+ 
 int finish = 0;
-
+ 
 void sig_handler (int sig)
 {
   if (sig == SIGINT)
     finish = 1;
 }
-
+ 
 int main (int argc, char *argv[])
 {
   struct sigaction act;
@@ -50,34 +43,34 @@ int main (int argc, char *argv[])
   char buffer[BUFFLEN];
   struct sockaddr_ll address;
   socklen_t address_size;
-
+ 
   memset (&act, 0, sizeof(act));
   act.sa_handler = sig_handler;
   sigaction (SIGINT, &act, NULL);
   
   /* vytvorime socket */
   sock = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
-
+ 
   if (sock == -1) {
     perror ("socket error");
     return -1;
   }
-
+ 
   address_size = sizeof(address);
   
   while (!finish) {
     /* prijmeme data */
     length = recvfrom (sock, buffer, BUFFLEN, 0, (struct sockaddr *)&address,
-		       &address_size);
+           &address_size);
     
     if (length == -1) {
       if (errno != EINTR) {
-	perror ("recvfrom error");
-	close (sock);
-	return -1;
+  perror ("recvfrom error");
+  close (sock);
+  return -1;
       }
       else
-	continue;
+  continue;
     }
     
     /* vypiseme data */
@@ -110,9 +103,22 @@ int main (int argc, char *argv[])
     cout << "delka ramce : " << length << endl;
     cout << "linkovy protokol : " << address.sll_protocol << endl;
     cout << "adresa odesilatele : " <<  ether_ntoa((ether_addr*)header->ether_shost) << endl;
-    cout << "adresa prijemce : " <<  ether_ntoa((ether_addr*)header->ether_dhost) << endl << endl;
+    cout << "adresa prijemce : " <<  ether_ntoa((ether_addr*)header->ether_dhost) << endl;
+ 
 
+    switch (data->protocol){
+        case IPPROTO_TCP:
+            cout << "protokol sitove vrstvy : TCP" << endl << endl;
+            break;
+        case IPPROTO_UDP:
+            cout << "protokol sitove vrstvy : UDP" << endl << endl;
+            break;
+        default:
+             cout << "protokol sitove vrstvy : " << ntohs(data->protocol) << endl << endl;
+            break;
+    }
 
+/*
     if(data->protocol == IPPROTO_TCP) { 
         cout << "protokol sitove vrstvy : TCP" << endl;
     } else {
@@ -122,8 +128,6 @@ int main (int argc, char *argv[])
             cout << "protokol sitove vrstvy : " << ntohs(data->protocol) << endl << endl;
         }
     }
-    /*
-    * neprilis hezke. takovy case by byl mnohem hezci.
     */
   }
     
