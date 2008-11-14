@@ -17,6 +17,7 @@
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
 #include <linux/if_ether.h>
+#include <linux/ip.h>
 #include <netinet/ether.h>
 #include <iostream>
 
@@ -98,14 +99,31 @@ int main (int argc, char *argv[])
     /* 
     * kdo by to byl cekal, pretypovavame buffer abychom dostali ether_header)
     */
+   
+    struct iphdr* data;
+    data = (struct iphdr*) (buffer + sizeof(struct ether_header));
+    /*
+    * a tady zase pretypovavame buffer, tentokrat na abychom dostali sitovy paket.
+    * Pricitame velikost hlavicky, sitovy paket je v ethernetovem ramci zabaleny.
+    */
     
     cout << "delka ramce : " << length << endl;
     cout << "linkovy protokol : " << address.sll_protocol << endl;
     cout << "adresa odesilatele : " <<  ether_ntoa((ether_addr*)header->ether_shost) << endl;
     cout << "adresa prijemce : " <<  ether_ntoa((ether_addr*)header->ether_dhost) << endl << endl;
+
+
+    if(data->protocol == IPPROTO_TCP) { 
+        cout << "protokol sitove vrstvy : TCP" << endl;
+    } else {
+        if(data->protocol == IPPROTO_UDP) {
+            cout << "protokol sitove vrstvy : UDP" << endl;
+        } else {
+            cout << "protokol sitove vrstvy : " << ntohs(data->protocol) << endl << endl;
+        }
+    }
     /*
-    * tusite ja ziskat protokol sitove vrstvy? napiste to do komentare!
-    * http://github.com/DarkTatka/site/tree/master/sokety-site/newmain.cpp
+    * neprilis hezke. takovy case by byl mnohem hezci.
     */
   }
     
