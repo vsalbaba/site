@@ -28,28 +28,28 @@
 int finish = 0;
 
 /* Funkce checksum je opsaná z příslušných RFC dokumentů. */
-long checksum(unsigned char *addr, int count) {
-    /* Compute Internet Checksum for "count" bytes
-     *         beginning at location "addr".
-     */
-    register long sum = 0;
+uint16_t checksum(uint16_t *addr, unsigned count)
+{
 
-    while (count > 1) {
-        /*  This is the inner loop */
-        sum += *(unsigned short *) addr++;
-        count -= 2;
-    }
+  uint32_t sum = 0;
+  while (count > 1)  {
+    sum += *(addr++);
+    count -= 2;
+  }
 
-    /*  Add left-over byte, if any */
-    if (count > 0)
-        sum += *(unsigned char *) addr;
+  // mop up an odd byte, if necessary
+  if (count > 0) {
+    sum += *(unsigned char *)addr;
+  }
 
-    /*  Fold 32-bit sum to 16 bits */
-    while (sum >> 16)
+  // add back carry outs from top 16 bits to low 16 bits
+   while (sum >> 16)
         sum = (sum & 0xffff) + (sum >> 16);
 
-    return ~sum;
+  return ~sum; // truncate to 16 bits
 }
+
+
 
 void sig_handler(int sig) {
     if (sig == SIGINT)
@@ -98,11 +98,13 @@ int main(int argc, char *argv[]) {
     my_sockaddr_in.sin_port = 0;
     memcpy(&my_sockaddr_in.sin_addr, host->h_addr, host->h_length);
 
-    printf("odeslali sme data\n");
+
     my_icmp_header.checksum = 0;
     my_icmp_header.un.echo.sequence = 0;
-    my_icmp_header.checksum = checksum((unsigned char *)&my_icmp_header, sizeof(my_icmp_header));
 
+    my_icmp_header.checksum = checksum((unsigned short *)&my_icmp_header, sizeof(my_icmp_header));
+
+    printf("odeslali sme data\n");
     sendto(sock, (char *)&my_icmp_header, sizeof(icmphdr), 0, (sockaddr *)&my_sockaddr_in, sizeof(sockaddr));
     /* zrusime socket */
     close(sock);
