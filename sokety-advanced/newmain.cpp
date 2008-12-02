@@ -132,10 +132,10 @@ int setsockopt(int s, int level, int optname, const void *optval, socklen_t optl
 int setsockopt(SOCKET s, int level, int optname, const char* optval, int optlen);
 
     * getsockopt vrací hodnotu volby optname socketu s na úrovni level na místo
-     * na optval a délku hodnoty na místo na optlen (kde je při volání funkce
-     * délka místa na optval, socklen_t unsigned long)
+    * na optval a délku hodnoty na místo na optlen (kde je při volání funkce
+    * délka místa na optval, socklen_t unsigned long)
     * setsockopt nastavuje hodnotu volby optname socketu s na úrovni level na
-     * hodnotu na místě na optval délky optlen
+    * hodnotu na místě na optval délky optlen
     * úrovně level voleb odpovídají protokolům, kterých se volby týkají, např.
      * IPPROTO_IP, IPPROTO_TCP apod. (je potřeba vložit hlavičkový soubor
      * pro protokol, např. netinet/ip.h nebo netinet/tcp.h), nebo nejvyšší
