@@ -59,22 +59,15 @@ void sig_handler(int sig) {
 int main(int argc, char *argv[]) {
     hostent *host;
     host = gethostbyname(argv[1]);
-    int p = 0;
     struct sigaction act;
     struct icmphdr my_icmp_header;
-    int sock, i;
-    ssize_t length;
-    char buffer[BUFSIZE];
-    struct iphdr *ip;
-    struct icmphdr *icmp;
-    struct sockaddr_in address;
-    socklen_t address_size;
-    struct timeval tv;
+    int sock;
     unsigned int ttl = 255;
     timeval my_tv;
     sockaddr_in my_sockaddr_in;
     memset(&act, 0, sizeof (act));
     act.sa_handler = sig_handler;
+
     sigaction(SIGINT, &act, NULL);
 
     /* vytvorime raw socket */
@@ -95,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*) & my_tv, sizeof (my_tv));
 
-    //vytvorime icmp paket
+    //vytvorim icmp paket
     my_icmp_header.type = ICMP_ECHO;
     my_icmp_header.code = 0;
     my_icmp_header.un.echo.id = getpid();
@@ -107,40 +100,10 @@ int main(int argc, char *argv[]) {
 
     printf("odeslali sme data\n");
     my_icmp_header.checksum = 0;
-    my_icmp_header.un.echo.sequence = p;
+    my_icmp_header.un.echo.sequence = 0;
     my_icmp_header.checksum = checksum((unsigned char *)&my_icmp_header, sizeof(my_icmp_header));
 
     sendto(sock, (char *)&my_icmp_header, sizeof(icmphdr), 0, (sockaddr *)&my_sockaddr_in, sizeof(sockaddr));
-
-
-    address_size = sizeof (address);
-
-    while (!finish) {
-        /* prijmeme data */
-        length = recvfrom(sock, buffer, BUFSIZE, 0, (struct sockaddr *)&address,
-                &address_size);
-
-        if (length == -1) {
-            if (errno != EINTR) {
-                perror("recvfrom error");
-                close(sock);
-                return -1;
-            } else
-                continue;
-        }
-
-        /* vypiseme cas */
-        gettimeofday(&tv, NULL);
-        printf("%li.%03li ms\n", tv.tv_sec, tv.tv_usec);
-
-        /* vypiseme data */
-        ip = (struct iphdr *) buffer;
-        icmp = (struct icmphdr *) & buffer[ip->ihl * 4];
-        printf("%s: ", inet_ntoa(address.sin_addr));
-    }
-
-    //odesleme data
-
     /* zrusime socket */
     close(sock);
 
