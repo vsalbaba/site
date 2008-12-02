@@ -101,7 +101,7 @@ int main (int argc, char *argv[])
     */
     
     cout << "delka ramce : " << length << endl;
-    cout << "linkovy protokol : " << address.sll_protocol << endl;
+    cout << "linkovy protokol : " << ntohs(address.sll_protocol) << endl;
     cout << "adresa odesilatele : " <<  ether_ntoa((ether_addr*)header->ether_shost) << endl;
     cout << "adresa prijemce : " <<  ether_ntoa((ether_addr*)header->ether_dhost) << endl;
  
