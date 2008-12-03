@@ -132,18 +132,18 @@ int main(int argc, char *argv[]) {
 
             ip_header = (iphdr *) buffer;
             icmp_header = *(struct icmphdr*) (buffer + sizeof (iphdr));
-//            cout << "typ (0 je fajn) : " << ntohs(icmp_header.type) << endl;
-//            cout << "kod (0 je fajn) : " << ntohs(icmp_header.code) << endl;
-//            cout << "id (" << getpid() << " je fajn)" << icmp_header.un.echo.id << endl;
-//            cout << "sequence (" << sequence << " je fajn)" << icmp_header.un.echo.sequence << endl << endl;
-        } while (!((ntohs(icmp_header.type) == ICMP_ECHOREPLY)
-                && (ntohs(icmp_header.code) == 0)
+            cout << "typ (0 je fajn) : " << ntohs(icmp_header.type) << endl;
+            cout << "kod (0 je fajn) : " << ntohs(icmp_header.code) << endl;
+            cout << "id (" << getpid() << " je fajn)" << icmp_header.un.echo.id << endl;
+            cout << "sequence (" << sequence << " je fajn)" << icmp_header.un.echo.sequence << endl << endl;
+        } while (!((icmp_header.type == ICMP_ECHOREPLY)
+                && (icmp_header.code == 0)
                 && (icmp_header.un.echo.id == getpid())
                 && (icmp_header.un.echo.sequence == sequence)));
 
         close(sock);
 
-        cout << "RTT = " << 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) << " msec" << endl;
+        cout << "RTT = " << 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) << " mikrosekund" << endl;
     }
     /* zrusime socket */
     close(sock);
