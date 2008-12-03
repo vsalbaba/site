@@ -69,25 +69,12 @@ int main(int argc, char *argv[]) {
     act.sa_handler = sig_handler;
     host = gethostbyname(argv[1]);
     sigaction(SIGINT, &act, NULL);
+
     timeout.tv_sec = 5;
     timeout.tv_usec = 0;
+
     /* vytvorime raw socket */
-    sock = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
 
-    if (sock == -1) {
-        perror("socket error");
-        return -1;
-    }
-
-    // Nastavte TTL odchozích IP paketů na 255
-    setsockopt(sock, IPPROTO_IP, IP_TTL,
-            (const char *) & ttl, sizeof (ttl));
-
-    //Nastavte časový interval pro příjem odpovídající odpovědi na 5 sekund (pomocí volby socketu SO_RCVTIMEO)
-    my_tv.tv_sec = 5;
-    my_tv.tv_usec = 0;
-
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*) & my_tv, sizeof (my_tv));
 
     //vytvorim icmp paket
     my_icmp_header.type = ICMP_ECHO;
@@ -104,44 +91,59 @@ int main(int argc, char *argv[]) {
         my_icmp_header.un.echo.sequence = i;
         int sequence = my_icmp_header.un.echo.sequence;
 
+        sock = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+
+        if (sock == -1) {
+            perror("socket error");
+            return -1;
+        }
+
+        // Nastavte TTL odchozích IP paketů na 255
+        setsockopt(sock, IPPROTO_IP, IP_TTL,
+                (const char *) & ttl, sizeof (ttl));
+
+        //Nastavte časový interval pro příjem odpovídající odpovědi na 5 sekund (pomocí volby socketu SO_RCVTIMEO)
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*) & timeout, sizeof (timeout));
+
+
         my_icmp_header.checksum = checksum((unsigned short *) & my_icmp_header, sizeof (my_icmp_header));
         //pri checksumu s vyplnenym checksumem ma vyjit 0
         if (checksum((unsigned short *) & my_icmp_header, sizeof (my_icmp_header)) != 0) {
             printf("OMFG, spatny checksum");
             return -1;
         }
+
         gettimeofday(&start, NULL);
         sendto(sock, (char *) & my_icmp_header, sizeof (icmphdr), 0, (sockaddr *) & my_sockaddr_in, sizeof (sockaddr));
-        cout << "ping to " << argv[1] << ": " << endl;
+        cout << "ping to " << argv[1] << ": ";
         //paket odeslan, cekame na odpoved
-        do {
-            FD_ZERO(&myset);
-            FD_SET(sock, &myset);
 
-            select(sock + 1, &myset, NULL, NULL, &timeout);
+        do {
             gettimeofday(&end, NULL);
-            if (FD_ISSET(sock, &myset)) {
-                size = sizeof (sockaddr_in);
-                recvfrom(sock, buffer, BUFSIZE, 0, (sockaddr *) & received_address, &size);
-            } else {
-                break;
+
+            size = sizeof (sockaddr_in);
+
+            if (recvfrom(sock, buffer, BUFSIZE, 0, (sockaddr *) & received_address, &size) == -1) {
+                printf("recvfrom error, neboli timeout;\n");
+                return -1;
             }
+
             //ted chytame ale vsechno, takze potreba vypsat jen kdyz to je nas hledany paket, popripade cekat dokud neprijde ten pravy
 
             ip_header = (iphdr *) buffer;
-            icmp_header = *(struct icmphdr*) (buffer + sizeof (ip_header));
-            cout << "typ (0 je fajn) : " << ntohs(icmp_header.type) << endl;
-            cout << "id (" << getpid() << " je fajn)" << ntohs(icmp_header.un.echo.id) << endl;
-            cout << "sequence (" << sequence << " je fajn)" << icmp_header.un.echo.sequence << endl << endl;
-        } while (!(ntohs(icmp_header.type) == ICMP_ECHOREPLY) && (ntohs(icmp_header.un.echo.sequence) == sequence));
+            icmp_header = *(struct icmphdr*) (buffer + sizeof (iphdr));
+//            cout << "typ (0 je fajn) : " << ntohs(icmp_header.type) << endl;
+//            cout << "kod (0 je fajn) : " << ntohs(icmp_header.code) << endl;
+//            cout << "id (" << getpid() << " je fajn)" << icmp_header.un.echo.id << endl;
+//            cout << "sequence (" << sequence << " je fajn)" << icmp_header.un.echo.sequence << endl << endl;
+        } while (!((ntohs(icmp_header.type) == ICMP_ECHOREPLY)
+                && (ntohs(icmp_header.code) == 0)
+                && (icmp_header.un.echo.id == getpid())
+                && (icmp_header.un.echo.sequence == sequence)));
 
-        if ((icmp_header.un.echo.id == getpid())
-                && (ntohs(icmp_header.type) == ICMP_ECHOREPLY)
-                && (icmp_header.un.echo.sequence == sequence)) {
-            cout << "RTT = " << 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) << endl;
-        }
+        close(sock);
 
-
+        cout << "RTT = " << 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) << " msec" << endl;
     }
     /* zrusime socket */
     close(sock);
